@@ -36,18 +36,23 @@ jobs:
       - name: Locate Android project
         shell: bash
         run: |
-          echo "Repository contents:"
-          ls -la
+          echo "Buscando proyecto Android..."
 
-          if [ -f "settings.gradle.kts" ] || [ -f "settings.gradle" ]; then
-            echo "PROJECT_DIR=." >> "$GITHUB_ENV"
-          elif [ -f "AmbiorixPay-Android-Project/settings.gradle.kts" ] || [ -f "AmbiorixPay-Android-Project/settings.gradle" ]; then
-            echo "PROJECT_DIR=AmbiorixPay-Android-Project" >> "$GITHUB_ENV"
-          else
+          SETTINGS_FILE=$(find . -maxdepth 5 -type f \
+            \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
+            -not -path "*/.gradle/*" \
+            | head -n 1)
+
+          if [ -z "$SETTINGS_FILE" ]; then
             echo "ERROR: No se encontró settings.gradle ni settings.gradle.kts"
-            find . -maxdepth 4 \( -name settings.gradle -o -name settings.gradle.kts \)
+            echo "Contenido del repositorio:"
+            find . -maxdepth 4 -type f | head -n 100
             exit 1
           fi
+
+          PROJECT_DIR=$(dirname "$SETTINGS_FILE")
+          echo "Proyecto encontrado en: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build debug APK
         shell: bash
@@ -59,6 +64,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AmbiorixPay-APK
-          path: |
-            **/build/outputs/apk/debug/*.apk
+          path: '**/build/outputs/apk/debug/*.apk'
           if-no-files-found: error
